@@ -4,7 +4,6 @@ pipeline {
   environment {
     IMAGE_NAME = 'hms-backend'
     IMAGE_TAG = "${env.BUILD_NUMBER}"
-    // Set in Jenkins credentials / global config for your registry
     REGISTRY = "${env.DOCKER_REGISTRY ?: 'localhost:5000'}"
   }
 
@@ -18,8 +17,9 @@ pipeline {
     stage('Install & Test Backend') {
       steps {
         dir('backend') {
-          sh 'npm ci || npm install'
-          sh 'node --check src/index.js'
+          // Use 'bat' for Windows commands
+          bat 'npm ci || npm install'
+          bat 'node --check src/index.js'
         }
       }
     }
@@ -28,24 +28,9 @@ pipeline {
       steps {
         dir('backend') {
           script {
+            // Built-in docker plugin works on Windows if Docker Desktop is running
             docker.build("${env.IMAGE_NAME}:${env.IMAGE_TAG}")
           }
-        }
-      }
-    }
-
-    stage('Docker Push') {
-      when {
-        expression { return env.REGISTRY != null && env.REGISTRY != '' }
-      }
-      steps {
-        script {
-          sh """
-            docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-            docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${REGISTRY}/${IMAGE_NAME}:latest
-            docker push ${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}
-            docker push ${REGISTRY}/${IMAGE_NAME}:latest
-          """
         }
       }
     }
@@ -55,15 +40,11 @@ pipeline {
         expression { return fileExists('k8s/deployment.yaml') }
       }
       steps {
-        withKubeConfig([credentialsId: 'kubeconfig-credentials']) {
-          sh """
-            kubectl apply -f k8s/configmap.yaml
-            kubectl apply -f k8s/deployment.yaml
-            kubectl apply -f k8s/service.yaml
-            kubectl set image deployment/hms-backend hms-backend=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} || true
-            kubectl rollout status deployment/hms-backend --timeout=120s
-          """
-        }
+        // Updated to use 'bat' for kubectl
+        bat "kubectl apply -f k8s/configmap.yaml"
+        bat "kubectl apply -f k8s/deployment.yaml"
+        bat "kubectl apply -f k8s/service.yaml"
+        bat "kubectl rollout status deployment/hms-backend --timeout=120s"
       }
     }
   }
