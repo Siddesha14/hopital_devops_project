@@ -1,0 +1,18 @@
+services:
+  hms-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-me}
+      NODE_ENV: production
+      DATA_DIR: /data
+      # Paste minified service account JSON (same as backend .env) for Firebase Auth verification:
+      # FIREBASE_SERVICE_ACCOUNT_JSON: '{"type":"service_account",...}'
+    volumes:
+      - hms-sqlite:/data
+
+volumes:
+  hms-sqlite:

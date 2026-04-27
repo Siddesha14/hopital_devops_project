@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "HMS",
+    "slug": "hms-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f766e"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.hms.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f766e"
+      },
+      "package": "com.hms.mobile"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiUrl": "",
+      "firebase": {
+        "apiKey": "AIzaSyBRJlr4Tib36gGaApsJXwNWef57HnwJeqg",
+        "authDomain": "hospital-a652f.firebaseapp.com",
+        "projectId": "hospital-a652f",
+        "storageBucket": "hospital-a652f.firebasestorage.app",
+        "messagingSenderId": "48592990013",
+        "appId": "1:48592990013:web:36c72d025e9a483b4f1f54"
+      }
+    }
+  }
+}

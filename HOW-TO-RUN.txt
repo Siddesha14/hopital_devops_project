@@ -1,0 +1,58 @@
+================================================================================
+  HOSPITAL MANAGEMENT SYSTEM — HOW TO RUN (READ THIS)
+================================================================================
+
+EASIEST (see the app in Chrome / Edge)
+--------------------------------------
+1. Double-click or run:   start-hms.ps1
+   (Or in PowerShell:  cd "c:\devops project"  then  .\start-hms.ps1)
+
+2. A first window opens = API server. Leave it open.
+
+3. The script starts Expo and should open the app in your browser.
+   If it does not, open:  http://localhost:8090  (Metro is fixed to port 8090).
+
+4. Log in:
+   - Toggle "server password login" and use:  admin@hms.local  /  admin123
+   - Or register as Patient/Doctor (Firebase + HMS).
+
+5. If login fails: make sure the API window shows "listening on port 3000".
+
+
+PHONE (Expo Go)
+---------------
+1. Start API (backend window as above).
+
+2. In another terminal:
+     cd mobile
+     npm run start:lan
+   Scan the QR code with Expo Go (same Wi-Fi as PC).
+
+3. If the phone cannot reach the API: Windows Firewall may block port 3000.
+   Allow Node.js for Private networks, or set app.json -> expo.extra.apiUrl to
+   http://YOUR_PC_LAN_IP:3000
+
+
+FIRST-TIME SETUP (once)
+-----------------------
+  cd backend
+  npm install
+  copy .env.example .env
+  Edit .env: set GOOGLE_APPLICATION_CREDENTIALS to your Firebase service account JSON path.
+
+  cd ..\mobile
+  npm install
+
+
+FIREBASE (browser)
+------------------
+In Firebase Console -> Authentication -> Settings -> Authorized domains,
+add "localhost" if sign-in on web fails.
+
+
+TROUBLESHOOTING
+---------------
+- "expo-asset cannot be found" -> cd mobile && npm install
+- "node is not recognized" -> reinstall Node and restart the terminal
+- npm / npx errors about Roaming\npm -> script creates that folder automatically
+================================================================================
