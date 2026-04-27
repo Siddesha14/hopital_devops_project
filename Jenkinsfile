@@ -27,10 +27,9 @@ pipeline {
     stage('Docker Build') {
       steps {
         dir('backend') {
-          script {
-            // Built-in docker plugin works on Windows if Docker Desktop is running
-            docker.build("${env.IMAGE_NAME}:${env.IMAGE_TAG}")
-          }
+          // Changed to 'bat' to avoid needing Jenkins plugins
+          bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
+          bat "docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest"
         }
       }
     }
