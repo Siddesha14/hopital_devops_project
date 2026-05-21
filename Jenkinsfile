@@ -4,10 +4,10 @@ pipeline {
   environment {
     IMAGE_NAME = 'hms-backend'
     IMAGE_TAG = "${env.BUILD_NUMBER}"
-    REGISTRY = "${env.DOCKER_REGISTRY ?: 'localhost:5000'}"
   }
 
   stages {
+
     stage('Checkout') {
       steps {
         checkout scm
@@ -17,7 +17,6 @@ pipeline {
     stage('Install & Test Backend') {
       steps {
         dir('backend') {
-          // Use 'bat' for Windows commands
           bat 'npm ci || npm install'
           bat 'node --check src/index.js'
         }
@@ -27,31 +26,27 @@ pipeline {
     stage('Docker Build') {
       steps {
         dir('backend') {
-          // Changed to 'bat' to avoid needing Jenkins plugins
           bat "docker build -t %IMAGE_NAME%:%IMAGE_TAG% ."
           bat "docker tag %IMAGE_NAME%:%IMAGE_TAG% %IMAGE_NAME%:latest"
         }
       }
     }
 
-    stage('Deploy Kubernetes') {
-      when {
-        expression { return fileExists('k8s/deployment.yaml') }
-      }
+    stage('Docker Run') {
       steps {
-        // Updated to use 'bat' for kubectl
-        bat "kubectl apply -f k8s/configmap.yaml"
-        bat "kubectl apply -f k8s/deployment.yaml"
-        bat "kubectl apply -f k8s/service.yaml"
-        bat "kubectl rollout status deployment/hms-backend --timeout=120s"
+        bat 'docker stop hms-backend || exit 0'
+        bat 'docker rm hms-backend || exit 0'
+        bat 'docker run -d --name hms-backend -p 3000:3000 hms-backend:latest'
       }
     }
+
   }
 
   post {
     failure {
-      echo 'Pipeline failed — check logs for npm, Docker, or kubectl errors.'
+      echo 'Pipeline failed — check Jenkins console logs.'
     }
+
     success {
       echo 'Pipeline completed successfully.'
     }
