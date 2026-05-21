@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const { isFirebaseEnabled } = require('./config/firebaseAdmin');
+const { ensureSchema } = require('./services/dbSchema');
 
 const authRoutes = require('./routes/auth');
 const patientsRoutes = require('./routes/patients');
@@ -34,11 +35,22 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`HMS API listening on port ${PORT}`);
-  console.log(
-    isFirebaseEnabled()
-      ? 'Firebase Admin: enabled (ID token exchange active)'
-      : 'Firebase Admin: disabled — set FIREBASE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS'
-  );
+async function start() {
+  if (isFirebaseEnabled()) {
+    await ensureSchema();
+  }
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`HMS API listening on port ${PORT}`);
+    console.log(
+      isFirebaseEnabled()
+        ? 'Firebase Admin: enabled (Realtime DB storage active)'
+        : 'Firebase Admin: disabled — set FIREBASE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS'
+    );
+  });
+}
+
+start().catch((err) => {
+  console.error('Startup failed:', err.message);
+  process.exit(1);
 });

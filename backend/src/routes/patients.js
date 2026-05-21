@@ -1,56 +1,51 @@
 const express = require('express');
-const db = require('../config/database');
 const { authMiddleware, requireRole } = require('../middleware/auth');
+const { list, findUserById, findPatientByUserId, findPatientById, updateByPath } = require('../config/firebaseDb');
 
 const router = express.Router();
 router.use(authMiddleware);
 
-router.get('/', requireRole('admin', 'doctor'), (req, res) => {
-  const rows = db
-    .prepare(
-      `SELECT p.*, u.email FROM patients p
-       JOIN users u ON u.id = p.user_id
-       ORDER BY p.name`
-    )
-    .all();
+router.get('/', requireRole('admin', 'doctor'), async (req, res) => {
+  const patients = await list('patients');
+  const rows = await Promise.all(
+    patients.map(async (p) => {
+      const user = await findUserById(String(p.user_id));
+      return { ...p, email: user ? user.email : null };
+    })
+  );
+  rows.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
   res.json(rows);
 });
 
-router.get('/me', requireRole('patient'), (req, res) => {
-  const row = db.prepare('SELECT * FROM patients WHERE user_id = ?').get(req.user.sub);
+router.get('/me', requireRole('patient'), async (req, res) => {
+  const row = await findPatientByUserId(String(req.user.sub));
   if (!row) {
     return res.status(404).json({ error: 'Patient profile not found' });
   }
   res.json(row);
 });
 
-router.get('/:id', requireRole('admin', 'doctor'), (req, res) => {
-  const row = db
-    .prepare(
-      `SELECT p.*, u.email FROM patients p
-       JOIN users u ON u.id = p.user_id WHERE p.id = ?`
-    )
-    .get(req.params.id);
+router.get('/:id', requireRole('admin', 'doctor'), async (req, res) => {
+  const base = await findPatientById(String(req.params.id));
+  const user = base ? await findUserById(String(base.user_id)) : null;
+  const row = base ? { ...base, email: user ? user.email : null } : null;
   if (!row) {
     return res.status(404).json({ error: 'Not found' });
   }
   res.json(row);
 });
 
-router.patch('/me', requireRole('patient'), (req, res) => {
+router.patch('/me', requireRole('patient'), async (req, res) => {
   const { name, phone, dateOfBirth } = req.body || {};
-  const patient = db.prepare('SELECT id FROM patients WHERE user_id = ?').get(req.user.sub);
+  const patient = await findPatientByUserId(String(req.user.sub));
   if (!patient) {
     return res.status(404).json({ error: 'Patient profile not found' });
   }
-  db.prepare(
-    `UPDATE patients SET
-      name = COALESCE(?, name),
-      phone = COALESCE(?, phone),
-      date_of_birth = COALESCE(?, date_of_birth)
-     WHERE user_id = ?`
-  ).run(name ?? null, phone ?? null, dateOfBirth ?? null, req.user.sub);
-  const updated = db.prepare('SELECT * FROM patients WHERE user_id = ?').get(req.user.sub);
+  const patch = {};
+  if (name !== undefined) patch.name = name;
+  if (phone !== undefined) patch.phone = phone;
+  if (dateOfBirth !== undefined) patch.date_of_birth = dateOfBirth;
+  const updated = await updateByPath(`patients/${patient.id}`, patch);
   res.json(updated);
 });
 

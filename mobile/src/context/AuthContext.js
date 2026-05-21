@@ -4,6 +4,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
+import { Platform } from 'react-native';
 import { api, setStoredToken, getStoredToken } from '../api/client';
 import { getFirebaseAuth, isFirebaseConfigured } from '../config/firebase';
 
@@ -84,10 +85,19 @@ export function AuthProvider({ children }) {
 
   async function login(email, password, options = {}) {
     const { adminOnly = false } = options;
+    if (Platform.OS === 'web') {
+      return loginWithPassword(email, password);
+    }
     if (adminOnly || !isFirebaseConfigured()) {
       return loginWithPassword(email, password);
     }
-    return loginWithFirebase(email, password);
+    try {
+      return loginWithFirebase(email, password);
+    } catch {
+      // Firebase web auth can fail due to console-side config (provider/domain).
+      // Fall back to backend password login so demos remain usable.
+      return loginWithPassword(email, password);
+    }
   }
 
   async function registerWithPassword(payload) {
@@ -135,8 +145,16 @@ export function AuthProvider({ children }) {
   }
 
   async function register(payload) {
+    if (Platform.OS === 'web') {
+      return registerWithPassword(payload);
+    }
     if (isFirebaseConfigured()) {
-      return registerWithFirebase(payload);
+      try {
+        return registerWithFirebase(payload);
+      } catch {
+        // If Firebase signup is blocked/misconfigured, continue with backend registration.
+        return registerWithPassword(payload);
+      }
     }
     return registerWithPassword(payload);
   }

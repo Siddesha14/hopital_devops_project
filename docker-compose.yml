@@ -2,17 +2,34 @@ services:
   hms-backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+    container_name: hms-backend
     ports:
       - "3000:3000"
     environment:
-      JWT_SECRET: ${JWT_SECRET:-dev-jwt-secret-change-me}
+      JWT_SECRET: dev-jwt-secret-change-me
       NODE_ENV: production
       DATA_DIR: /data
-      # Paste minified service account JSON (same as backend .env) for Firebase Auth verification:
-      # FIREBASE_SERVICE_ACCOUNT_JSON: '{"type":"service_account",...}'
+      PORT: 3000
+      GOOGLE_APPLICATION_CREDENTIALS: /app/firebase.json
     volumes:
       - hms-sqlite:/data
+      - ./backend/firebase.json:/app/firebase.json
+    restart: unless-stopped
+
+  hms-mobile:   # ✅ NOW AT SAME LEVEL
+    build:
+      context: ./mobile
+      dockerfile: Dockerfile
+    container_name: hms-mobile
+    ports:
+      - "8090:8090"
+    environment:
+      EXPO_DEVTOOLS_LISTEN_ADDRESS: 0.0.0.0
+      EXPO_PUBLIC_API_URL: http://localhost:3000
+    command: npx expo start --web --host lan --port 8090 -c
+    depends_on:
+      - hms-backend
+    restart: unless-stopped
 
 volumes:
   hms-sqlite:

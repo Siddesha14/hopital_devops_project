@@ -1,6 +1,19 @@
 const admin = require('firebase-admin');
+const fs = require('fs');
+const path = require('path');
 
 let initialized = false;
+let inferredDatabaseUrl = '';
+
+function buildDatabaseUrl(credentials) {
+  if (process.env.FIREBASE_DATABASE_URL && process.env.FIREBASE_DATABASE_URL.trim()) {
+    return process.env.FIREBASE_DATABASE_URL.trim();
+  }
+  if (credentials && credentials.project_id) {
+    return `https://${credentials.project_id}-default-rtdb.firebaseio.com`;
+  }
+  return '';
+}
 
 /**
  * Initialize Firebase Admin from JSON in FIREBASE_SERVICE_ACCOUNT_JSON
@@ -20,8 +33,10 @@ function initFirebaseAdmin() {
   if (json && json.trim()) {
     try {
       const credentials = JSON.parse(json);
+      inferredDatabaseUrl = buildDatabaseUrl(credentials);
       admin.initializeApp({
         credential: admin.credential.cert(credentials),
+        databaseURL: inferredDatabaseUrl || undefined,
       });
       initialized = true;
       return true;
@@ -32,8 +47,25 @@ function initFirebaseAdmin() {
   }
 
   try {
+    const credPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    const fallbackPath = path.join(__dirname, '..', '..', 'firebase.json');
+    const chosenPath = credPath && fs.existsSync(credPath) ? credPath : (fs.existsSync(fallbackPath) ? fallbackPath : '');
+    if (chosenPath) {
+      const raw = fs.readFileSync(chosenPath, 'utf8');
+      const credentials = JSON.parse(raw);
+      inferredDatabaseUrl = buildDatabaseUrl(credentials);
+      admin.initializeApp({
+        credential: admin.credential.cert(credentials),
+        databaseURL: inferredDatabaseUrl || undefined,
+      });
+      initialized = true;
+      return true;
+    }
+
+    inferredDatabaseUrl = process.env.FIREBASE_DATABASE_URL || '';
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
+      databaseURL: inferredDatabaseUrl || undefined,
     });
     initialized = true;
     return true;
